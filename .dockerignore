@@ -1,0 +1,13 @@
+.git
+.github
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+.env
+.env.*
+coverage.out
+coverage.html
+bin/
+dist/
+vendor/

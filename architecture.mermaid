@@ -1,0 +1,56 @@
+graph TB
+    Client[HTTP Client<br/>REST API calls]
+    
+    subgraph "API Gateway Layer"
+        Gateway[gRPC-Gateway<br/>HTTP ⟷ gRPC Transcoding]
+        
+        subgraph "Header Mapping Middleware"
+            HM_IN[MetadataAnnotator<br/>HTTP Headers → gRPC Metadata]
+            HM_MATCH[HeaderMatcher<br/>Configure Header Mapping]
+            HM_OUT[ResponseModifier<br/>gRPC Metadata → HTTP Headers]
+        end
+    end
+    
+    subgraph "gRPC Server Layer"
+        Interceptor[gRPC Interceptor<br/>Process Metadata Context]
+        
+        subgraph "Business Services"
+            ServiceA[User Service]
+            ServiceB[Order Service] 
+            ServiceC[Payment Service]
+        end
+    end
+    
+    subgraph "Configuration"
+        Config[Header Mapping Config<br/>YAML/JSON/Programmatic]
+        Transform[Transformations<br/>Bearer extraction, sanitization]
+    end
+    
+    Client -->|"HTTP Request<br/>Authorization: Bearer token<br/>X-Request-ID: req-123"| Gateway
+    
+    Gateway --> HM_MATCH
+    Gateway --> HM_IN
+    HM_IN -->|"Mapped Metadata"| Interceptor
+    
+    Config --> HM_IN
+    Config --> HM_OUT  
+    Transform --> HM_IN
+    Transform --> HM_OUT
+    
+    Interceptor -->|"Enhanced Context"| ServiceA
+    Interceptor --> ServiceB
+    Interceptor --> ServiceC
+    
+    ServiceA -->|"Response Metadata"| HM_OUT
+    ServiceB --> HM_OUT
+    ServiceC --> HM_OUT
+    
+    HM_OUT -->|"HTTP Response<br/>X-Processing-Time: 150ms<br/>X-Request-ID: req-123"| Client
+    
+    classDef middleware fill:#4fc3f7,stroke:#0277bd,stroke-width:3px
+    classDef service fill:#81c784,stroke:#388e3c,stroke-width:3px
+    classDef config fill:#ffb74d,stroke:#f57c00,stroke-width:3px
+    
+    class HM_IN,HM_MATCH,HM_OUT,Interceptor middleware
+    class ServiceA,ServiceB,ServiceC service
+    class Config,Transform config

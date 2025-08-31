@@ -1,0 +1,45 @@
+sequenceDiagram
+    participant Client as HTTP Client
+    participant Gateway as gRPC-Gateway  
+    participant Annotator as MetadataAnnotator<br/>(Middleware)
+    participant Interceptor as gRPC Interceptor<br/>(Middleware)
+    participant Service as Business Service
+    participant Modifier as ResponseModifier<br/>(Middleware)
+    
+    Note over Client,Modifier: Step 1: HTTP Request Processing
+    Client->>Gateway: POST /v1/users<br/>Authorization: Bearer abc123<br/>X-Request-ID: req-456<br/>X-User-Role: admin
+    
+    Gateway->>Annotator: Process Incoming Headers
+    
+    Note over Annotator: Apply Header Mappings:<br/>• Authorization → authorization<br/>• Authorization → auth-token (transform)<br/>• X-Request-ID → request-id<br/>• X-User-Role → user-role
+    
+    Annotator-->>Gateway: Return metadata.MD{<br/>"authorization": "Bearer abc123",<br/>"auth-token": "abc123",<br/>"request-id": "req-456",<br/>"user-role": "admin"<br/>}
+    
+    Note over Client,Modifier: Step 2: gRPC Context Creation
+    Gateway->>Interceptor: gRPC Call with Enhanced Context
+    
+    Note over Interceptor: Context contains:<br/>• Mapped metadata<br/>• Original request info<br/>• No large objects (best practice)
+    
+    Interceptor->>Service: handler(ctx, request)
+    
+    Note over Client,Modifier: Step 3: Service Processing  
+    Note over Service: md, _ := metadata.FromIncomingContext(ctx)<br/>authToken := getFirstValue(md, "auth-token")<br/>requestID := getFirstValue(md, "request-id")<br/>userRole := getFirstValue(md, "user-role")
+    
+    Service->>Service: Business Logic Processing<br/>Using Extracted Headers
+    
+    Note over Service: Set Response Headers:<br/>grpc.SetHeader(ctx, metadata.New({<br/>"processing-time": "150",<br/>"server-version": "v1.2.0",<br/>"request-id": "req-456"<br/>}))
+    
+    Service-->>Interceptor: Return Response + Metadata
+    Interceptor-->>Gateway: gRPC Response with Headers
+    
+    Note over Client,Modifier: Step 4: HTTP Response Processing
+    Gateway->>Modifier: Process Outgoing Headers
+    
+    Note over Modifier: Apply Response Mappings:<br/>• processing-time → X-Processing-Time<br/>• server-version → X-Server-Version<br/>• request-id → X-Request-ID
+    
+    Modifier-->>Gateway: Set HTTP Response Headers
+    Gateway-->>Client: HTTP/1.1 200 OK<br/>X-Processing-Time: 150ms<br/>X-Server-Version: v1.2.0<br/>X-Request-ID: req-456<br/><br/>{"user": {...}}
+    
+    rect rgb(240, 248, 255)
+        Note over Client,Modifier: Middleware ensures:<br/>✅ Consistent header naming<br/>✅ Bidirectional mapping<br/>✅ Configurable transformations<br/>✅ No context abuse<br/>✅ Centralized configuration
+    end

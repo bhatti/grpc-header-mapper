@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package test;
+
+option go_package = "github.com/bhatti/grpc-header-mapper/test/testdata/proto;pb";
+
+import "google/api/annotations.proto";
+
+service TestService {
+  rpc Echo(EchoRequest) returns (EchoResponse) {
+    option (google.api.http) = {
+      post: "/v1/echo"
+      body: "*"
+    };
+  }
+  
+  rpc StreamEcho(stream EchoRequest) returns (stream EchoResponse);
+}
+
+message EchoRequest {
+  string message = 1;
+  map<string, string> metadata = 2;
+}
+
+message EchoResponse {
+  string message = 1;
+  map<string, string> headers = 2;
+  int64 timestamp = 3;
+}
+

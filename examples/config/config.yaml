@@ -1,0 +1,77 @@
+# Complete configuration example for grpc-header-mapper
+
+mappings:
+  # Authentication headers
+  - http_header: "Authorization"
+    grpc_metadata: "authorization"
+    direction: 0  # Incoming
+    required: true
+  
+  - http_header: "X-API-Key"
+    grpc_metadata: "api-key"
+    direction: 0  # Incoming
+    required: false
+    default_value: ""
+  
+  # Request tracking headers (bidirectional)
+  - http_header: "X-Request-ID"
+    grpc_metadata: "request-id"
+    direction: 2  # Bidirectional
+    required: false
+    default_value: ""
+  
+  - http_header: "X-Correlation-ID"  
+    grpc_metadata: "correlation-id"
+    direction: 2  # Bidirectional
+    required: false
+  
+  - http_header: "X-Trace-ID"
+    grpc_metadata: "trace-id"
+    direction: 2  # Bidirectional
+    required: false
+  
+  # Response headers (outgoing)
+  - http_header: "X-Response-Time"
+    grpc_metadata: "response-time"
+    direction: 1  # Outgoing
+    required: false
+  
+  - http_header: "X-Server-Version"
+    grpc_metadata: "server-version"
+    direction: 1  # Outgoing
+    default_value: "unknown"
+  
+  - http_header: "X-RateLimit-Remaining"
+    grpc_metadata: "rate-limit-remaining"
+    direction: 1  # Outgoing
+    required: false
+  
+  # Content headers
+  - http_header: "Content-Type"
+    grpc_metadata: "content-type"
+    direction: 2  # Bidirectional
+    required: false
+    default_value: "application/json"
+  
+  - http_header: "Accept"
+    grpc_metadata: "accept"
+    direction: 0  # Incoming
+    required: false
+  
+  - http_header: "User-Agent"
+    grpc_metadata: "user-agent"
+    direction: 0  # Incoming
+    required: false
+
+# Paths to skip header mapping
+skip_paths:
+  - "/health"
+  - "/ready"
+  - "/metrics"
+  - "/debug"
+
+# Configuration options
+case_sensitive: false
+overwrite_existing: true
+debug: false
+

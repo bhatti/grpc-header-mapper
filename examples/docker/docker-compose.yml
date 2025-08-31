@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  example-server:
+    build:
+      context: ../..
+      dockerfile: examples/docker/Dockerfile
+    ports:
+      - "8080:8080"  # HTTP Gateway
+      - "9090:9090"  # gRPC Server
+    environment:
+      - DEBUG=true
+      - CONFIG_PATH=/app/config.yaml
+    volumes:
+      - ../config/config.yaml:/app/config.yaml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Example client for testing
+  test-client:
+    image: curlimages/curl:latest
+    depends_on:
+      - example-server
+    command: |
+      sh -c '
+        sleep 10 &&
+        echo "Testing health endpoint..." &&
+        curl -f http://example-server:8080/health &&
+        echo "\nTesting echo endpoint..." &&
+        curl -X POST \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer test-token" \
+          -H "X-Request-ID: test-123" \
+          -H "X-User-ID: user-456" \
+          -d "{\"message\": \"Hello from client\"}" \
+          http://example-server:8080/v1/echo
+      '
+    restart: "no"
+
+  # Monitoring (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+
+networks:
+  default:
+    name: grpc-header-mapper-network
