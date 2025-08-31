@@ -8,24 +8,42 @@
 
 A high-performance Go library for mapping HTTP headers to gRPC metadata and vice versa when using grpc-gateway. Designed for production environments with comprehensive configuration options, transformations, and monitoring capabilities.
 
-## 🚀 Features
+## Features
 
-- **🔄 Bidirectional Mapping**: HTTP headers ↔ gRPC metadata with configurable directions
-- **🛠️ Flexible Configuration**: Programmatic builder API or declarative YAML/JSON config
-- **⚡ High Performance**: Optimized for production with minimal allocations
-- **🔧 Transformations**: Built-in and custom header value transformations
-- **🎯 Path Filtering**: Skip header mapping for specific routes (health checks, metrics)
-- **📊 Monitoring Ready**: Built-in metrics and debug logging
-- **🧪 Well Tested**: Comprehensive test suite with benchmarks
-- **📚 Production Ready**: Used in production environments
+- **Bidirectional Mapping**: HTTP headers ↔ gRPC metadata with configurable directions
+- **Flexible Configuration**: Programmatic builder API or declarative YAML/JSON config
+- **High Performance**: Optimized for production with minimal allocations
+- **Transformations**: Built-in and custom header value transformations
+- **Path Filtering**: Skip header mapping for specific routes (health checks, metrics)
+- **Monitoring Ready**: Built-in metrics and debug logging
+- **Well Tested**: Comprehensive test suite with benchmarks
+- **Production Ready**: Used in production environments
 
-## 📦 Installation
+## Installation
 
 ```bash
 go get github.com/bhatti/grpc-header-mapper
 ```
 
-## 🚀 Quick Start
+## Quick Start
+
+### Try It Out
+
+```bash
+# Clone and set up
+git clone https://github.com/bhatti/grpc-header-mapper.git
+cd grpc-header-mapper
+make setup
+
+# Run the basic example
+make run-basic-example
+
+# In another terminal, test it
+make test-basic-server
+
+# Or test everything automatically  
+make test-basic-integration
+```
 
 ### Basic Usage
 
@@ -88,7 +106,7 @@ func main() {
         AddOutgoingMapping("server-version", "X-Server-Version").
         
         // Transformations
-        AddIncomingMapping("authorization", "auth-token").
+        AddIncomingMapping("Authorization", "auth-token").
         WithTransform(headermapper.ChainTransforms(
             headermapper.TrimSpace,
             headermapper.RemovePrefix("Bearer "),
@@ -111,7 +129,7 @@ func main() {
 }
 ```
 
-## 📖 Configuration
+## Configuration
 
 ### Builder Pattern (Recommended)
 
@@ -193,7 +211,7 @@ config := &headermapper.Config{
 mapper := headermapper.NewHeaderMapper(config)
 ```
 
-## 🔧 Transformations
+## Transformations
 
 ### Built-in Transformations
 
@@ -241,7 +259,7 @@ mapper := headermapper.NewBuilder().
     Build()
 ```
 
-## 📋 Predefined Mappings
+## Predefined Mappings
 
 ### Common Headers
 
@@ -281,7 +299,7 @@ config := &headermapper.Config{
 }
 ```
 
-## 🏗️ Integration
+## Integration
 
 ### gRPC Interceptors
 
@@ -316,7 +334,89 @@ mapper := headermapper.NewBuilder().Build()
 mapper.SetLogger(MyLogger{})
 ```
 
-## 📊 Monitoring & Debugging
+## Examples
+
+The project includes two comprehensive examples demonstrating different usage patterns:
+
+### Basic Example
+- **[Basic Usage](examples/basic/)** - Clean implementation with essential header mapping
+- Demonstrates core functionality with clear logging
+- Perfect for getting started and understanding the concepts
+
+### Advanced Example
+- **[Advanced Configuration](examples/advanced/)** - Production-ready implementation
+- Includes metrics collection, custom logging, and error handling
+- Shows complex transformations and configuration loading
+- Demonstrates graceful shutdown and monitoring endpoints
+
+### Additional Resources
+- **[Docker Setup](examples/docker/)** - Containerized deployment examples
+- **[Configuration Files](examples/config/)** - YAML/JSON configuration examples
+- **[Test Scripts](scripts/)** - Automated testing and validation scripts
+
+### Running Examples
+
+```bash
+# Run basic example with clear logging
+make run-basic-example
+
+# Test it automatically (starts server, tests, stops)
+make test-basic-integration
+
+# Run advanced example with metrics
+make run-advanced-example
+
+# Test advanced features
+make test-advanced-integration
+```
+
+## Testing
+
+### Running Tests
+
+```bash
+# Core library tests
+make test           # Unit tests with race detection and coverage
+make bench          # Benchmark tests for performance validation  
+make coverage       # Generate HTML coverage report
+
+# Integration testing (automated)
+make test-basic-integration     # Test basic example end-to-end
+make test-advanced-integration  # Test advanced example with all features
+make test-integration          # Default integration test (basic)
+
+# Manual testing (requires server running in another terminal)
+make run-basic-example         # Terminal 1: Start server
+make test-basic-server         # Terminal 2: Run tests
+```
+
+### Test Coverage
+
+The library includes comprehensive test coverage:
+- Unit tests for all core functionality
+- Integration tests with real HTTP/gRPC communication
+- Benchmark tests for performance validation
+- Example server validation with automated scripts
+
+### Writing Tests
+
+```go
+func TestHeaderMapping(t *testing.T) {
+    mapper := headermapper.NewBuilder().
+        AddIncomingMapping("X-User-ID", "user-id").
+        Build()
+
+    req := httptest.NewRequest("GET", "/api/test", nil)
+    req.Header.Set("X-User-ID", "12345")
+
+    md := mapper.MetadataAnnotator()(context.Background(), req)
+    
+    userID := md.Get("user-id")
+    assert.Equal(t, "12345", userID[0])
+}
+```
+
+## Monitoring & Debugging
 
 ### Debug Logging
 
@@ -335,41 +435,7 @@ fmt.Printf("Outgoing mappings: %d\n", stats.OutgoingMappings)
 fmt.Printf("Failed mappings: %d\n", stats.FailedMappings)
 ```
 
-## 🧪 Testing
-
-```bash
-# Run all tests
-make test
-
-# Run benchmarks  
-make bench
-
-# Generate coverage report
-make coverage
-
-# Run integration tests
-make test-integration
-```
-
-### Test Your Configuration
-
-```go
-func TestHeaderMapping(t *testing.T) {
-    mapper := headermapper.NewBuilder().
-        AddIncomingMapping("X-User-ID", "user-id").
-        Build()
-
-    req := httptest.NewRequest("GET", "/api/test", nil)
-    req.Header.Set("X-User-ID", "12345")
-
-    md := mapper.MetadataAnnotator()(context.Background(), req)
-    
-    userID := md.Get("user-id")
-    assert.Equal(t, "12345", userID[0])
-}
-```
-
-## 🚀 Performance
+## Performance
 
 Optimized for high-throughput production environments:
 
@@ -379,52 +445,59 @@ BenchmarkHeaderMatcher-8        5000000    300 ns/op     80 B/op    2 allocs/op
 BenchmarkTransformations-8     10000000    150 ns/op     32 B/op    1 allocs/op
 ```
 
-## 📚 Examples
-
-See the [`examples/`](examples/) directory for complete working examples:
-
-- **[Basic Usage](examples/basic/)** - Simple HTTP header mapping
-- **[Advanced Configuration](examples/advanced/)** - Complex transformations and custom logging
-- **[Docker Setup](examples/docker/)** - Containerized deployment
-- **[Kubernetes](examples/kubernetes/)** - K8s deployment manifests
-- **[Integration Tests](examples/integration/)** - End-to-end testing
-
-## 🛠️ Development
+## Development
 
 ### Setup
 
 ```bash
 git clone https://github.com/bhatti/grpc-header-mapper.git
 cd grpc-header-mapper
-make deps
-make tools
+make setup  # Complete development environment setup
 ```
 
-### Commands
+### Available Commands
 
 ```bash
+# Build and Development
 make build          # Build the library
-make test           # Run tests  
-make bench          # Run benchmarks
-make lint           # Run linter
+make examples       # Build all example binaries (basic, advanced)
+make clean          # Clean build artifacts and generated proto files
+
+# Testing
+make test           # Run unit tests with coverage
+make bench          # Run benchmark tests
+make coverage       # Generate HTML coverage report
+make lint           # Run linter (golangci-lint)
 make fmt            # Format code
-make coverage       # Generate coverage report
-make examples       # Build example binaries
+
+# Running Examples
+make run-basic-example     # Run basic example server
+make run-advanced-example  # Run advanced example server with metrics
+make run-example          # Run basic example (default)
+
+# Testing Examples  
+make test-basic-integration     # Full automated test of basic example
+make test-advanced-integration  # Full automated test of advanced example
+make test-integration          # Full automated test (default: basic)
+
+# Manual Testing (requires server running)
+make test-basic-server      # Test basic server functionality
+make test-advanced-server   # Test advanced server functionality
+
+# CI/CD
+make ci             # Run all CI checks (fmt, vet, lint, test)
+make pre-commit     # Run pre-commit checks
 ```
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
-
-- 📖 [Documentation](docs/)
-- 🐛 [Report Issues](https://github.com/bhatti/grpc-header-mapper/issues)
-- 💬 [Discussions](https://github.com/bhatti/grpc-header-mapper/discussions)  
-- 📧 [Security Issues](SECURITY.md)
-
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway) - HTTP gateway for gRPC
 - [gRPC-Go](https://github.com/grpc/grpc-go) - Go implementation of gRPC
 
+---
+
+**Built with ❤️ for the Go and gRPC community**
